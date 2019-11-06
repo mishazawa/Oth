@@ -161,6 +161,81 @@ public class BoardController : MonoBehaviour {
 		row.Clear();
 
 		// traverse diagonal
+		// traverse diagonal up right
+		int ii = y + 1;
+		int jj = x + 1;
+    	for (;(ii < boardSize && jj < boardSize);) {
+    		if (chesses[ii, jj] == null) break;
+			if (chesses[ii, jj].color == startColor) {
+				if (row.Count == 0) break;
+				if (!inserted) {
+					Insert(coords);
+					inserted = true;
+				}
+				TurnRow(row);
+				break;
+			}
+    		row.Add(chesses[ii, jj]);	
+			ii++; jj++;
+		}
+		row.Clear();
+		
+		// traverse diagonal down right
+		ii = y - 1;
+		jj = x + 1;
+    	for (;(ii >= 0 && jj < boardSize);) {
+    		if (chesses[ii, jj] == null) break;
+			if (chesses[ii, jj].color == startColor) {
+				if (row.Count == 0) break;
+				if (!inserted) {
+					Insert(coords);
+					inserted = true;
+				}
+				TurnRow(row);
+				break;
+			}
+    		row.Add(chesses[ii, jj]);	
+			ii--; jj++;
+		}
+		row.Clear();
+
+		// traverse diagonal up left
+		ii = y + 1;
+		jj = x - 1;
+    	for (;(ii < boardSize && jj >= 0);) {
+    		if (chesses[ii, jj] == null) break;
+			if (chesses[ii, jj].color == startColor) {
+				if (row.Count == 0) break;
+				if (!inserted) {
+					Insert(coords);
+					inserted = true;
+				}
+				TurnRow(row);
+				break;
+			}
+    		row.Add(chesses[ii, jj]);	
+			ii++; jj--;
+		}
+		row.Clear();
+
+		// traverse diagonal down left
+		ii = y - 1;
+		jj = x - 1;
+    	for (;(ii >= 0 && jj >= 0);) {
+    		if (chesses[ii, jj] == null) break;
+			if (chesses[ii, jj].color == startColor) {
+				if (row.Count == 0) break;
+				if (!inserted) {
+					Insert(coords);
+					inserted = true;
+				}
+				TurnRow(row);
+				break;
+			}
+    		row.Add(chesses[ii, jj]);	
+			ii--; jj--;
+		}
+		row.Clear();
 
 		if (inserted) {
 			currentColor = !currentColor;
