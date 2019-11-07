@@ -36,14 +36,9 @@ public class BoardController : MonoBehaviour {
 	    		var gridCoords = grid.Nearest(hit.point);
 	    		if (IsEmpty(gridCoords)) {
 	    			Travese(gridCoords);
+	    			CheckEndGame();
 	    		}
 	        }
-	    	if (Input.GetMouseButtonDown(1)) {
-	    		var gridCoords = grid.Nearest(hit.point);
-	    		if (!IsEmpty(gridCoords)) {
-					// GetChessByCoords(gridCoords).Turn();	
-				}
-			}
     	}
     }
 
@@ -71,182 +66,126 @@ public class BoardController : MonoBehaviour {
     	return (x: (int)coords.x, y: (int)coords.z);
     }
 
+    Vector3 GetCoords (int x, int y) {
+    	return grid.Nearest(new Vector3(x + 0.1f, 0, y + 0.1f));
+    }
+	Vector3 GetCoords (float x, float y) {
+    	return grid.Nearest(new Vector3(x + 0.1f, 0, y + 0.1f));
+    }
     void InitialChess() {
     	// ¯\_(ツ)_/¯
     	var x = (boardSize / 2);
-	    Insert(grid.Nearest(new Vector3(x, 0, x)));
-	    currentColor = !currentColor;
-	    Insert(grid.Nearest(new Vector3(x - 0.5f, 0, x)));
-	    currentColor = !currentColor;
-	    Insert(grid.Nearest(new Vector3(x - 0.5f, 0, x - 0.5f)));
-	    currentColor = !currentColor;
-	    Insert(grid.Nearest(new Vector3(x, 0, x - 0.5f)));
-	    currentColor = !currentColor;
+    	var shift = 1;
+
+    	var initial = new List<(float, float)>();
+
+    	initial.Add((x, x));
+    	initial.Add((x - shift, x));
+    	initial.Add((x - shift, x - shift));
+    	initial.Add((x, x - shift));
+    	
+    	foreach(var (i, j) in initial) {
+		    Insert(GetCoords(i, j));
+			NextColor();		    
+    	}
     }
 
 	Value GetCurrentColor () {
     	return !currentColor ? Value.BLACK : Value.WHITE;
     }
 
-    void Travese (Vector3 coords) {
-    	// rewrite this
+    void NextColor () {
+		currentColor = !currentColor;
+    }
 
-		Value startColor = GetCurrentColor();
-    	var (x, y) = GetIndices(coords);
+    List<Chess> RunRow (
+    	(int x, int y) start,
+    	(int x, int y) finish,
+    	(int x, int y) shift,
+    	Value color
+	) {	
+		var row = new List<Chess>();
+		    	
+    	while (!(start.x == finish.x && start.y == finish.y)) {
+    		Chess chess = chesses[start.y, start.x];  
+			if (chess == null) return null;
+			if (chess.color == color) break;
+    		
+    		row.Add(chess);
+
+    		start.x += shift.x;
+    		start.y += shift.y;
+
+    	}
+
+    	return row;
+    }
+
+	bool CanPlaceChess (Vector3 coords) {
+		// todo
+    	return false;
+    }
+
+    bool CheckTurnInsert (List<Chess> row, bool inserted, Vector3 coords) {
+		if (row != null && row.Count > 0) {
+			TurnRow(row);
+			if (!inserted) {
+				Insert(coords);
+				return true;
+			}
+		}
+		return inserted;
+    }
+
+    void Travese (Vector3 coords) {
 		var inserted = false;
+    	var (x, y) = GetIndices(coords);
+		Value startColor = GetCurrentColor();
 		
 		// traverse up;
-		var row = new List<Chess>();
-    	for (int i = y + 1; i < boardSize; i++) {
-    		if (chesses[i, x] == null) break;
-			if (chesses[i, x].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			}
-    		row.Add(chesses[i, x]);
-    	}
-		row.Clear();
-		
+		inserted = CheckTurnInsert(RunRow((x, y + 1), (x, (int)boardSize), (0, 1), startColor), inserted, coords);
 		// traverse down;
-    	for (int i = y - 1; i >= 0; i--) {
-    		if (chesses[i, x] == null) break;
-    		if (chesses[i, x].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			} 	
-    		row.Add(chesses[i, x]);
-    	}
-		row.Clear();
-
+		inserted = CheckTurnInsert(RunRow((x, y - 1), (x, 0), (0, -1), startColor), inserted, coords);
     	// traverse right;
-    	for (int i = x + 1; i < boardSize; i++) {
-    		if (chesses[y, i] == null) break;
-    		if (chesses[y, i].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			} 	
-    		row.Add(chesses[y, i]);
-    	}
-		row.Clear();
-		
+		inserted = CheckTurnInsert(RunRow((x + 1, y), ((int)boardSize, y), (1, 0), startColor), inserted, coords);
 		// traverse left;
-    	for (int i = x - 1; i >= 0; i--) {
-    		if (chesses[y, i] == null) break;
-    		if (chesses[y, i].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			}
-    		row.Add(chesses[y, i]);
-    	}
-		row.Clear();
-
-		// traverse diagonal
+		inserted = CheckTurnInsert(RunRow((x - 1, y), (0, y), (-1, 0), startColor), inserted, coords);
 		// traverse diagonal up right
-		int ii = y + 1;
-		int jj = x + 1;
-    	for (;(ii < boardSize && jj < boardSize);) {
-    		if (chesses[ii, jj] == null) break;
-			if (chesses[ii, jj].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			}
-    		row.Add(chesses[ii, jj]);	
-			ii++; jj++;
-		}
-		row.Clear();
-		
+		inserted = CheckTurnInsert(RunRow((x + 1, y + 1), ((int)boardSize, (int)boardSize), (1, 1), startColor), inserted, coords);
 		// traverse diagonal down right
-		ii = y - 1;
-		jj = x + 1;
-    	for (;(ii >= 0 && jj < boardSize);) {
-    		if (chesses[ii, jj] == null) break;
-			if (chesses[ii, jj].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			}
-    		row.Add(chesses[ii, jj]);	
-			ii--; jj++;
-		}
-		row.Clear();
-
+		inserted = CheckTurnInsert(RunRow((x + 1, y - 1), ((int)boardSize, 0), (1, -1), startColor), inserted, coords);
 		// traverse diagonal up left
-		ii = y + 1;
-		jj = x - 1;
-    	for (;(ii < boardSize && jj >= 0);) {
-    		if (chesses[ii, jj] == null) break;
-			if (chesses[ii, jj].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			}
-    		row.Add(chesses[ii, jj]);	
-			ii++; jj--;
-		}
-		row.Clear();
-
+		inserted = CheckTurnInsert(RunRow((x - 1, y + 1), (0, (int)boardSize), (-1, 1), startColor), inserted, coords);
 		// traverse diagonal down left
-		ii = y - 1;
-		jj = x - 1;
-    	for (;(ii >= 0 && jj >= 0);) {
-    		if (chesses[ii, jj] == null) break;
-			if (chesses[ii, jj].color == startColor) {
-				if (row.Count == 0) break;
-				if (!inserted) {
-					Insert(coords);
-					inserted = true;
-				}
-				TurnRow(row);
-				break;
-			}
-    		row.Add(chesses[ii, jj]);	
-			ii--; jj--;
-		}
-		row.Clear();
+		inserted = CheckTurnInsert(RunRow((x - 1, y - 1), (0, 0), (-1, -1), startColor), inserted, coords);
 
-		if (inserted) {
-			currentColor = !currentColor;
-		}
+		if (inserted) NextColor();
     }
 
     void TurnRow (List<Chess> row) {
 		foreach (Chess c in row) {
     		c.Turn(GetCurrentColor());
-		}    	
-		row.Clear();
+		}
     }
 
+    void CheckEndGame() {
+    	var possibleTurns = new List<(int, int)>(); 
+    	for (int y = 0; y < boardSize; y++) {
+	    	for (int x = 0; x < boardSize; x++) {
+				if (chesses[y, x] == null) {
+					possibleTurns.Add((x, y));
+				} 
+			}
+    	}
+    	if (possibleTurns.Count == 0) {
+    		Debug.Log("All filled");
+    	}
+
+    	foreach(var (x, y) in possibleTurns) {
+    		// travese and check;
+
+    	}
+    }
+
+    
 }
