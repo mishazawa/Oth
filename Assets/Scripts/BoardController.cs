@@ -107,11 +107,14 @@ public class BoardController : MonoBehaviour {
 		var row = new List<Chess>();
 		    	
     	while (!(start.x == finish.x && start.y == finish.y)) {
-    		Chess chess = chesses[start.y, start.x];  
-			if (chess == null) return null;
-			if (chess.color == color) break;
-    		
-    		row.Add(chess);
+    		try {
+	    		Chess chess = chesses[start.y, start.x];  
+				if (chess == null) return null;
+				if (chess.color == color) break;
+	    		row.Add(chess);
+    		} catch {
+    			return null;
+    		}
 
     		start.x += shift.x;
     		start.y += shift.y;
