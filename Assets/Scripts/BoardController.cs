@@ -4,6 +4,89 @@ using UnityEngine;
 
 using Utils;
 
+
+class TraveseIteration {
+	private Chess[,] board;
+	private bool inserted = false;
+	private Value color;
+	private int boardSize = 8; 
+
+	public TraveseIteration (Chess[,] b, Value c, float bs) {
+		board = b;
+		color = c;
+
+		boardSize = (int) bs;
+	}
+
+	public List<List<Chess>> TraveseDirections (int x, int y) {
+		List<List<Chess>> trav = new List<List<Chess>>();
+
+		// traverse up;
+		trav.Add(RunRow((x, y + 1), (x, boardSize), (0, 1), color));
+		// traverse down;
+		trav.Add(RunRow((x, y - 1), (x, 0), (0, -1), color));
+    	// traverse right;
+		trav.Add(RunRow((x + 1, y), (boardSize, y), (1, 0), color));
+		// traverse left;
+		trav.Add(RunRow((x - 1, y), (0, y), (-1, 0), color));
+		// traverse diagonal up right
+		trav.Add(RunRow((x + 1, y + 1), (boardSize, boardSize), (1, 1), color));
+		// traverse diagonal down right
+		trav.Add(RunRow((x + 1, y - 1), (boardSize, 0), (1, -1), color));
+		// traverse diagonal up left
+		trav.Add(RunRow((x - 1, y + 1), (0, boardSize), (-1, 1), color));
+		// traverse diagonal down left
+		trav.Add(RunRow((x - 1, y - 1), (0, 0), (-1, -1), color));
+
+		return trav;
+	}
+
+	public bool CanInsert (List<List<Chess>> directions) {
+		foreach(List<Chess> row in directions) {
+			if (row != null && row.Count > 0) return true;
+		}
+		return false;
+	}
+
+	public bool CheckTurnInsert (List<List<Chess>> directions) {
+		foreach(List<Chess> row in directions) {
+			if (row != null && row.Count > 0) {
+				TurnRow(row);
+				if (!inserted) inserted = true;
+			}
+		}
+		if (inserted) return true;
+		return false;
+	}
+
+	private void TurnRow (List<Chess> row) {
+		foreach (Chess c in row) {
+    		c.Turn(color);
+		}
+    }
+
+	private List<Chess> RunRow (
+    	(int x, int y) start,
+    	(int x, int y) finish,
+    	(int x, int y) shift,
+    	Value color
+	) {	
+		var row = new List<Chess>();
+		while (!(start.x == finish.x && start.y == finish.y)) {
+
+    		Chess chess = board[start.y, start.x];  
+			if (chess == null) return null;
+			if (chess.color == color) break;
+    		
+    		row.Add(chess);
+
+    		start.x += shift.x;
+    		start.y += shift.y;
+    	}		    	
+    	return row;
+    }
+}
+
 public class BoardController : MonoBehaviour {
 	public float boardSize = 8;
 	public GameObject chessPrefab;
@@ -19,7 +102,7 @@ public class BoardController : MonoBehaviour {
 		transform.position += new Vector3(boardSize / 2f, 0f, boardSize / 2f);
 		
 		grid = FindObjectOfType<Grid>();
-		chesses = new Chess[8,8];
+		chesses = new Chess[8, 8];
 
 		InitialChess();
 	}
@@ -36,7 +119,9 @@ public class BoardController : MonoBehaviour {
 	    		var gridCoords = grid.Nearest(hit.point);
 	    		if (IsEmpty(gridCoords)) {
 	    			Travese(gridCoords);
-	    			CheckEndGame();
+	    			// if (CheckEndGame()) {
+	    			// 	Debug.Log("ty loh");
+	    			// }
 	    		}
 	        }
     	}
@@ -98,93 +183,43 @@ public class BoardController : MonoBehaviour {
 		currentColor = !currentColor;
     }
 
-    List<Chess> RunRow (
-    	(int x, int y) start,
-    	(int x, int y) finish,
-    	(int x, int y) shift,
-    	Value color
-	) {	
-		var row = new List<Chess>();
-		    	
-    	while (!(start.x == finish.x && start.y == finish.y)) {
-    		Chess chess = chesses[start.y, start.x];  
-			if (chess == null) return null;
-			if (chess.color == color) break;
-    		
-    		row.Add(chess);
-
-    		start.x += shift.x;
-    		start.y += shift.y;
-
-    	}
-
-    	return row;
-    }
-
 	bool CanPlaceChess (Vector3 coords) {
-		// todo
-    	return false;
-    }
-
-    bool CheckTurnInsert (List<Chess> row, bool inserted, Vector3 coords) {
-		if (row != null && row.Count > 0) {
-			TurnRow(row);
-			if (!inserted) {
-				Insert(coords);
-				return true;
-			}
-		}
-		return inserted;
+		var (x, y) = GetIndices(coords);
+		TraveseIteration traverseIteration = new TraveseIteration(chesses, GetCurrentColor(), boardSize);
+		return traverseIteration.CanInsert(traverseIteration.TraveseDirections(x, y));
     }
 
     void Travese (Vector3 coords) {
-		var inserted = false;
     	var (x, y) = GetIndices(coords);
-		Value startColor = GetCurrentColor();
-		
-		// traverse up;
-		inserted = CheckTurnInsert(RunRow((x, y + 1), (x, (int)boardSize), (0, 1), startColor), inserted, coords);
-		// traverse down;
-		inserted = CheckTurnInsert(RunRow((x, y - 1), (x, 0), (0, -1), startColor), inserted, coords);
-    	// traverse right;
-		inserted = CheckTurnInsert(RunRow((x + 1, y), ((int)boardSize, y), (1, 0), startColor), inserted, coords);
-		// traverse left;
-		inserted = CheckTurnInsert(RunRow((x - 1, y), (0, y), (-1, 0), startColor), inserted, coords);
-		// traverse diagonal up right
-		inserted = CheckTurnInsert(RunRow((x + 1, y + 1), ((int)boardSize, (int)boardSize), (1, 1), startColor), inserted, coords);
-		// traverse diagonal down right
-		inserted = CheckTurnInsert(RunRow((x + 1, y - 1), ((int)boardSize, 0), (1, -1), startColor), inserted, coords);
-		// traverse diagonal up left
-		inserted = CheckTurnInsert(RunRow((x - 1, y + 1), (0, (int)boardSize), (-1, 1), startColor), inserted, coords);
-		// traverse diagonal down left
-		inserted = CheckTurnInsert(RunRow((x - 1, y - 1), (0, 0), (-1, -1), startColor), inserted, coords);
-
-		if (inserted) NextColor();
+		TraveseIteration traverseIteration = new TraveseIteration(chesses, GetCurrentColor(), boardSize);
+		if (traverseIteration.CheckTurnInsert(traverseIteration.TraveseDirections(x, y))) {
+			Insert(coords);
+			NextColor();
+		}		
     }
 
-    void TurnRow (List<Chess> row) {
-		foreach (Chess c in row) {
-    		c.Turn(GetCurrentColor());
-		}
-    }
-
-    void CheckEndGame() {
+    bool CheckEndGame() {
     	var possibleTurns = new List<(int, int)>(); 
+    	
     	for (int y = 0; y < boardSize; y++) {
 	    	for (int x = 0; x < boardSize; x++) {
 				if (chesses[y, x] == null) {
-					possibleTurns.Add((x, y));
+					possibleTurns.Add((y, x));
 				} 
 			}
     	}
+
     	if (possibleTurns.Count == 0) {
     		Debug.Log("All filled");
+    		return true;
     	}
 
-    	foreach(var (x, y) in possibleTurns) {
-    		// travese and check;
-
+    	foreach(var (y, x) in possibleTurns) {
+    		if (CanPlaceChess(GetCoords(x, y))) return false;
     	}
+
+    	return true;
+
     }
 
     
