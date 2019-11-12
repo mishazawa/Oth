@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 using Utils;
 
@@ -14,7 +15,6 @@ class TraveseIteration {
   public TraveseIteration (Chess[,] b, Value c) {
     board = b;
     color = c;
-
     boardSize = b.GetLength(0) - 1;
   }
 
@@ -58,13 +58,9 @@ class TraveseIteration {
   }
 
   private void TurnRow (List<Chess> row) {
-    string a = "[ ";
     foreach (Chess c in row) {
-        a += c.color;
-        a += " ";
-        c.Turn(color);
+      c.Turn(color);
     }
-    Debug.Log(a + "]");
   }
 
   private List<Chess> RunRow (
@@ -79,7 +75,7 @@ class TraveseIteration {
     while (!(start.x == finish.x && start.y == finish.y)) {
       Chess chess = board[start.y, start.x];
       if (chess == null) return null;
-      if (chess.color == color) break;
+      if (chess.color == color) return row;
 
       row.Add(chess);
 
@@ -88,7 +84,7 @@ class TraveseIteration {
         start.y + shift.y
       );
     }
-    return row;
+    return null;
   }
 
   (int, int) Clamp (int x, int y) {
@@ -99,9 +95,9 @@ class TraveseIteration {
 public class BoardController : MonoBehaviour {
   public float boardSize = 8;
   public GameObject chessPrefab;
+  public Text text;
 
   private Grid grid;
-
   private Chess[,] chesses;
 
   private bool currentColor = false;
@@ -109,127 +105,128 @@ public class BoardController : MonoBehaviour {
   void Awake () {
     Camera.main.transform.position += new Vector3(boardSize / 2f, 0f, boardSize / 2f);
     transform.position += new Vector3(boardSize / 2f, 0f, boardSize / 2f);
-
     grid = FindObjectOfType<Grid>();
     chesses = new Chess[(int)boardSize, (int)boardSize];
 
     InitialChess();
   }
 
-    void Update() {
+  void Update() {
     HandleClick(Camera.main.ScreenPointToRay(Input.mousePosition));
-    }
+  }
 
-    void HandleClick (Ray ray) {
+  void HandleClick (Ray ray) {
     RaycastHit hit;
 
-      if (Physics.Raycast(ray, out hit)) {
-        if (Input.GetMouseButtonDown(0)) {
-          var gridCoords = grid.Nearest(hit.point);
-          if (IsEmpty(gridCoords)) {
-            Travese(gridCoords);
-            // if (CheckEndGame()) {
-            //  Debug.Log("ty loh");
-            // }
+    if (Physics.Raycast(ray, out hit)) {
+      if (Input.GetMouseButtonDown(0)) {
+        var gridCoords = grid.Nearest(hit.point);
+        if (IsEmpty(gridCoords)) {
+          Travese(gridCoords);
+          if (CheckEndGame()) {
+            Debug.Log("ty loh");
           }
         }
       }
     }
+  }
 
-    bool IsEmpty (Vector3 coords) {
-      return GetChessByCoords(coords) == null;
-    }
+  bool IsEmpty (Vector3 coords) {
+    return GetChessByCoords(coords) == null;
+  }
 
-    void Insert (Vector3 coords) {
+  void Insert (Vector3 coords) {
     Chess chess = Instantiate(chessPrefab).GetComponent<Chess>();
     chess.Create(coords, GetCurrentColor());
     InsertChessToGrid(chess);
-    }
+  }
 
-    Chess GetChessByCoords (Vector3 coords) {
-      var (x, y) = GetIndices(coords);
-      return chesses[y, x];
-    }
+  Chess GetChessByCoords (Vector3 coords) {
+    var (x, y) = GetIndices(coords);
+    return chesses[y, x];
+  }
 
-    void InsertChessToGrid (Chess che) {
-      var (x, y) = GetIndices(che.transform.position);
-      chesses[y, x] = che;
-    }
+  void InsertChessToGrid (Chess che) {
+    var (x, y) = GetIndices(che.transform.position);
+    chesses[y, x] = che;
+  }
 
-    (int x, int y) GetIndices (Vector3 coords) {
-      return (x: (int)coords.x, y: (int)coords.z);
-    }
+  (int x, int y) GetIndices (Vector3 coords) {
+    return (x: (int)coords.x, y: (int)coords.z);
+  }
 
-    Vector3 GetCoords (int x, int y) {
-      return grid.Nearest(new Vector3(x + 0.1f, 0, y + 0.1f));
-    }
+  Vector3 GetCoords (int x, int y) {
+    return grid.Nearest(new Vector3(x + 0.1f, 0, y + 0.1f));
+  }
+
   Vector3 GetCoords (float x, float y) {
-      return grid.Nearest(new Vector3(x + 0.1f, 0, y + 0.1f));
-    }
-    void InitialChess() {
-      // ¯\_(ツ)_/¯
-      var x = (boardSize / 2);
-      var shift = 1;
+    return grid.Nearest(new Vector3(x + 0.1f, 0, y + 0.1f));
+  }
 
-      var initial = new List<(float, float)>();
+  void InitialChess() {
+    // ¯\_(ツ)_/¯
+    var x = (boardSize / 2);
+    var shift = 1;
 
-      initial.Add((x, x));
-      initial.Add((x - shift, x));
-      initial.Add((x - shift, x - shift));
-      initial.Add((x, x - shift));
+    var initial = new List<(float, float)>();
 
-      foreach(var (i, j) in initial) {
-        Insert(GetCoords(i, j));
+    initial.Add((x, x));
+    initial.Add((x - shift, x));
+    initial.Add((x - shift, x - shift));
+    initial.Add((x, x - shift));
+
+    foreach(var (i, j) in initial) {
+      Insert(GetCoords(i, j));
       NextColor();
-      }
     }
+  }
 
   Value GetCurrentColor () {
-      return !currentColor ? Value.BLACK : Value.WHITE;
-    }
+    return !currentColor ? Value.BLACK : Value.WHITE;
+  }
 
-    void NextColor () {
+  void NextColor () {
     currentColor = !currentColor;
-    }
+    text.text = GetCurrentColor().ToString();
+  }
 
   bool CanPlaceChess (Vector3 coords) {
     var (x, y) = GetIndices(coords);
     TraveseIteration traverseIteration = new TraveseIteration(chesses, GetCurrentColor());
     return traverseIteration.CanInsert(traverseIteration.TraveseDirections(x, y));
-    }
+  }
 
-    void Travese (Vector3 coords) {
-      var (x, y) = GetIndices(coords);
+  void Travese (Vector3 coords) {
+    var (x, y) = GetIndices(coords);
     TraveseIteration traverseIteration = new TraveseIteration(chesses, GetCurrentColor());
     if (traverseIteration.CheckTurnInsert(traverseIteration.TraveseDirections(x, y))) {
       Insert(coords);
       NextColor();
     }
-    }
+  }
 
-    bool CheckEndGame() {
-      var possibleTurns = new List<(int, int)>();
+  bool CheckEndGame() {
+    var possibleTurns = new List<(int, int)>();
 
-      for (int y = 0; y < boardSize; y++) {
-        for (int x = 0; x < boardSize; x++) {
+    for (int y = 0; y < boardSize; y++) {
+      for (int x = 0; x < boardSize; x++) {
         if (chesses[y, x] == null) {
           possibleTurns.Add((y, x));
         }
       }
-      }
-
-      if (possibleTurns.Count == 0) {
-        Debug.Log("All filled");
-        return true;
-      }
-
-      foreach(var (y, x) in possibleTurns) {
-        if (CanPlaceChess(GetCoords(x, y))) return false;
-      }
-
-      return true;
-
     }
+
+    if (possibleTurns.Count == 0) {
+      Debug.Log("All filled");
+      return true;
+    }
+
+    foreach(var (y, x) in possibleTurns) {
+      if (CanPlaceChess(GetCoords(x, y))) return false;
+    }
+
+    return true;
+  }
 
 
 }
