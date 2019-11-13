@@ -37,8 +37,13 @@ public class BoardController : MonoBehaviour {
         var gridCoords = grid.Nearest(hit.point);
         if (IsEmpty(gridCoords)) {
           Travese(gridCoords);
-          if (CheckEndGame()) {
-            Debug.Log("ty loh");
+          if (CheckSkipTurn()) {
+            Debug.Log(GetCurrentColor() + " can't move.");
+            NextColor();
+            if (CheckSkipTurn()) {
+              Debug.Log(GetCurrentColor() + " can't move.");
+              Debug.Log("Game over.");
+            }
           }
         }
       }
@@ -119,7 +124,7 @@ public class BoardController : MonoBehaviour {
     }
   }
 
-  bool CheckEndGame() {
+  bool CheckSkipTurn() {
     var possibleTurns = new List<(int, int)>();
 
     for (int y = 0; y < boardSize; y++) {
