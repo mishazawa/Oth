@@ -1,15 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 using Utils;
+using static TraveseIteration;
 
 public class BoardController : MonoBehaviour {
   public float boardSize = 8;
   public GameObject chessPrefab;
+  public Text text;
 
   private Grid grid;
-
   private Chess[,] chesses;
 
   private bool currentColor = false;
@@ -17,9 +19,8 @@ public class BoardController : MonoBehaviour {
   void Awake () {
     Camera.main.transform.position += new Vector3(boardSize / 2f, 0f, boardSize / 2f);
     transform.position += new Vector3(boardSize / 2f, 0f, boardSize / 2f);
-
     grid = FindObjectOfType<Grid>();
-    chesses = new Chess[8,8];
+    chesses = new Chess[(int)boardSize, (int)boardSize];
 
     InitialChess();
   }
@@ -36,9 +37,16 @@ public class BoardController : MonoBehaviour {
         var gridCoords = grid.Nearest(hit.point);
         if (IsEmpty(gridCoords)) {
           Travese(gridCoords);
-          CheckEndGame();
+          if (CheckSkipTurn()) {
+            Debug.Log(GetCurrentColor() + " can't move.");
+            NextColor();
+            if (CheckSkipTurn()) {
+              Debug.Log(GetCurrentColor() + " can't move.");
+              Debug.Log("Game over.");
+            }
+          }
         }
-        }
+      }
     }
   }
 
@@ -93,100 +101,51 @@ public class BoardController : MonoBehaviour {
   }
 
   Value GetCurrentColor () {
-      return !currentColor ? Value.BLACK : Value.WHITE;
+    return !currentColor ? Value.BLACK : Value.WHITE;
   }
 
   void NextColor () {
     currentColor = !currentColor;
-  }
-
-  List<Chess> RunRow (
-    (int x, int y) start,
-    (int x, int y) finish,
-    (int x, int y) shift,
-    Value color
-  ) {
-    var row = new List<Chess>();
-
-    while (!(start.x == finish.x && start.y == finish.y)) {
-
-      Chess chess = chesses[start.y, start.x];
-      if (chess == null) return null;
-      if (chess.color == color) break;
-      row.Add(chess);
-
-      start.x += shift.x;
-      start.y += shift.y;
-
-    }
-
-    return row;
+    text.text = GetCurrentColor().ToString();
   }
 
   bool CanPlaceChess (Vector3 coords) {
-    // todo
-    return false;
-  }
-
-  bool CheckTurnInsert (List<Chess> row, bool inserted, Vector3 coords) {
-    if (row != null && row.Count > 0) {
-      TurnRow(row);
-      if (!inserted) {
-        Insert(coords);
-        return true;
-      }
-    }
-    return inserted;
+    var (x, y) = GetIndices(coords);
+    TraveseIteration traverseIteration = new TraveseIteration(chesses, GetCurrentColor());
+    return traverseIteration.CanInsert(traverseIteration.TraveseDirections(x, y));
   }
 
   void Travese (Vector3 coords) {
-    var inserted = false;
     var (x, y) = GetIndices(coords);
-    Value startColor = GetCurrentColor();
-
-    // traverse up;
-    inserted = CheckTurnInsert(RunRow((x, y + 1), (x, (int)boardSize), (0, 1), startColor), inserted, coords);
-    // traverse down;
-    inserted = CheckTurnInsert(RunRow((x, y - 1), (x, 0), (0, -1), startColor), inserted, coords);
-      // traverse right;
-    inserted = CheckTurnInsert(RunRow((x + 1, y), ((int)boardSize, y), (1, 0), startColor), inserted, coords);
-    // traverse left;
-    inserted = CheckTurnInsert(RunRow((x - 1, y), (0, y), (-1, 0), startColor), inserted, coords);
-    // traverse diagonal up right
-    inserted = CheckTurnInsert(RunRow((x + 1, y + 1), ((int)boardSize, (int)boardSize), (1, 1), startColor), inserted, coords);
-    // traverse diagonal down right
-    inserted = CheckTurnInsert(RunRow((x + 1, y - 1), ((int)boardSize, 0), (1, -1), startColor), inserted, coords);
-    // traverse diagonal up left
-    inserted = CheckTurnInsert(RunRow((x - 1, y + 1), (0, (int)boardSize), (-1, 1), startColor), inserted, coords);
-    // traverse diagonal down left
-    inserted = CheckTurnInsert(RunRow((x - 1, y - 1), (0, 0), (-1, -1), startColor), inserted, coords);
-
-    if (inserted) NextColor();
-  }
-
-  void TurnRow (List<Chess> row) {
-    foreach (Chess c in row) {
-      c.Turn(GetCurrentColor());
+    TraveseIteration traverseIteration = new TraveseIteration(chesses, GetCurrentColor());
+    if (traverseIteration.CheckTurnInsert(traverseIteration.TraveseDirections(x, y))) {
+      Insert(coords);
+      NextColor();
     }
   }
 
-  void CheckEndGame() {
+  bool CheckSkipTurn() {
     var possibleTurns = new List<(int, int)>();
+
     for (int y = 0; y < boardSize; y++) {
       for (int x = 0; x < boardSize; x++) {
         if (chesses[y, x] == null) {
-          possibleTurns.Add((x, y));
+          possibleTurns.Add((y, x));
         }
       }
     }
+
     if (possibleTurns.Count == 0) {
       Debug.Log("All filled");
+      return true;
     }
 
-    foreach(var (x, y) in possibleTurns) {
-      // travese and check;
-
+    foreach(var (y, x) in possibleTurns) {
+      if (CanPlaceChess(GetCoords(x, y))) return false;
     }
+
+    return true;
   }
+
 
 }
