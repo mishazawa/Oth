@@ -29,23 +29,33 @@ public class BoardController : MonoBehaviour {
     HandleClick(Camera.main.ScreenPointToRay(Input.mousePosition));
   }
 
+  public void PlaceChess (Vector3 gridCoords) {
+    if (IsEmpty(gridCoords)) {
+      Travese(gridCoords);
+      if (CheckSkipTurn()) {
+        Debug.Log(GetCurrentColor() + " can't move.");
+        NextColor();
+        if (CheckSkipTurn()) {
+          Debug.Log(GetCurrentColor() + " can't move.");
+          var (white, black) = CountScore();
+          Debug.Log(
+            "Game over. " +
+            (white > black? "WHITE": "BLACK") +
+            " win. Score: (w:" +
+            white +
+            ", b: " +
+            black +
+            ")");
+        }
+      }
+    }
+  }
   void HandleClick (Ray ray) {
     RaycastHit hit;
 
     if (Physics.Raycast(ray, out hit)) {
       if (Input.GetMouseButtonDown(0)) {
-        var gridCoords = grid.Nearest(hit.point);
-        if (IsEmpty(gridCoords)) {
-          Travese(gridCoords);
-          if (CheckSkipTurn()) {
-            Debug.Log(GetCurrentColor() + " can't move.");
-            NextColor();
-            if (CheckSkipTurn()) {
-              Debug.Log(GetCurrentColor() + " can't move.");
-              Debug.Log("Game over.");
-            }
-          }
-        }
+        PlaceChess(grid.Nearest(hit.point));
       }
     }
   }
@@ -146,6 +156,15 @@ public class BoardController : MonoBehaviour {
 
     return true;
   }
+  (int white, int black) CountScore () {
+    var white = new List<Chess>();
+    var black = new List<Chess>();
 
-
+    foreach (Chess c in chesses) {
+      if (c == null) continue;
+      if (c.color == Value.BLACK) black.Add(c);
+      white.Add(c);
+    }
+    return (white: white.Count, black: black.Count);
+  }
 }

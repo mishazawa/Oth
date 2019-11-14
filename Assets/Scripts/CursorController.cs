@@ -16,7 +16,6 @@ public class CursorController : MonoBehaviour
 
   void Awake()
   {
-
     glowMaterial = GameObject.Find("/Field/Cursor/Glowing").GetComponent<Renderer>().material;
     board = FindObjectOfType<BoardController>();
     grid = FindObjectOfType<Grid>();
@@ -28,21 +27,34 @@ public class CursorController : MonoBehaviour
 
   void Update()
   {
-    glowMaterial.color = DrawColoredCursor(board.GetCurrentColor());
+
     if (cnt <= 0) {
       var newPos = transform.position;
+
+      var forward = Camera.main.transform.forward;
+      var right = Camera.main.transform.right;
+
+      forward.y = 0f;
+      right.y = 0f;
+      forward.Normalize();
+      right.Normalize();
+
       if (Input.GetKey(KeyCode.LeftArrow)) {
-        newPos += Vector3.left;
+        newPos -= right;
       }
+
       if (Input.GetKey(KeyCode.RightArrow)) {
-        newPos += Vector3.right;
+        newPos += right;
       }
+
       if (Input.GetKey(KeyCode.UpArrow)) {
-        newPos += Vector3.forward;
+        newPos += forward;
       }
+
       if (Input.GetKey(KeyCode.DownArrow)) {
-        newPos += Vector3.back;
+        newPos -= forward;
       }
+
 
       if (newPos != transform.position) {
         newPos = new Vector3(
@@ -53,6 +65,10 @@ public class CursorController : MonoBehaviour
         newPos = grid.Nearest(newPos);
         transform.position = newPos;
         cnt = countdown;
+      }
+      if (Input.GetKey(KeyCode.X)) {
+        board.PlaceChess(transform.position);
+        glowMaterial.SetColor("_Color", DrawColoredCursor(board.GetCurrentColor()));
       }
       return;
     }
