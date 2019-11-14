@@ -100,7 +100,7 @@ public class BoardController : MonoBehaviour {
     }
   }
 
-  Value GetCurrentColor () {
+  public Value GetCurrentColor () {
     return !currentColor ? Value.BLACK : Value.WHITE;
   }
 

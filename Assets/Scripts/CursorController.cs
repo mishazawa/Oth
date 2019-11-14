@@ -11,18 +11,24 @@ public class CursorController : MonoBehaviour
   private float boardSize = 8f;
   private Grid grid;
   private float cnt;
+  private Material glowMaterial;
+  private BoardController board;
 
   void Awake()
   {
-    boardSize = GameObject.Find("/Field/Board").GetComponent<BoardController>().boardSize - 0.5f; // ??? idk
-    cnt = countdown;
 
+    glowMaterial = GameObject.Find("/Field/Cursor/Glowing").GetComponent<Renderer>().material;
+    board = FindObjectOfType<BoardController>();
     grid = FindObjectOfType<Grid>();
+
+    cnt = countdown;
+    boardSize = board.boardSize - 0.5f; // ??? idk
     transform.position = grid.Nearest(transform.position);
   }
 
   void Update()
   {
+    glowMaterial.color = DrawColoredCursor(board.GetCurrentColor());
     if (cnt <= 0) {
       var newPos = transform.position;
       if (Input.GetKey(KeyCode.LeftArrow)) {
@@ -51,5 +57,9 @@ public class CursorController : MonoBehaviour
       return;
     }
     cnt -= Time.deltaTime;
+  }
+
+  Color DrawColoredCursor (Value v) {
+    return v == Value.BLACK ? Color.black : Color.white;
   }
 }
