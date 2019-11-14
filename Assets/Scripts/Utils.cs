@@ -26,4 +26,10 @@ namespace Utils {
       return a;
     }
   }
+
+  class Boundaries {
+    public static bool Inside (int x, int y, int boardSize) {
+      return (x >= 0 && x <= boardSize && y >= 0 && y <= boardSize);
+    }
+  }
 }

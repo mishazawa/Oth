@@ -85,7 +85,7 @@ public class TraveseIteration {
     start = Clamp(start.x + shift.x, start.y + shift.y);
 
     do {
-      if (!InBorders(start.x, start.y)) return null;
+      if (!Boundaries.Inside(start.x, start.y, boardSize - 1)) return null;
       Chess chess = board[start.y, start.x];
       if (chess == null) return null;
       if (chess.color == color) return row;
@@ -98,10 +98,6 @@ public class TraveseIteration {
 
   (int, int) Clamp (int x, int y) {
     return ((int)Mathf.Clamp(x, 0, boardSize - 1), (int)Mathf.Clamp(y, 0, boardSize - 1));
-  }
-
-  bool InBorders (int x, int y) {
-    return (x >= 0 && x <= boardSize - 1 && y >= 0 && y <= boardSize - 1);
   }
 
 }
